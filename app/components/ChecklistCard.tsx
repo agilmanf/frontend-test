@@ -1,18 +1,19 @@
-import { Link, useLoaderData } from "@remix-run/react";
+import { useLoaderData, useNavigate, useRevalidator } from "@remix-run/react";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { loader } from "~/routes/_index";
+import { toast } from "react-toastify";
 
 import { Checklist } from "~/types/checklist";
+import { DefaultResponseData } from "~/types/shared";
 import { deleteChecklist } from "~/lib/api/checklist";
+import { loader } from "~/routes/checklist._index";
 
-const ChecklistMenu = ({ id }: { id: number }) => {
-  const data = useLoaderData<typeof loader>();
-  const authorization = decodeURIComponent(data.authorization);
-
-  const handleDelete = async () => {
-    const res = await deleteChecklist(id.toString(), authorization);
-  };
-
+const ChecklistMenu = ({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
   return (
     <Menu>
       <MenuButton>
@@ -23,15 +24,18 @@ const ChecklistMenu = ({ id }: { id: number }) => {
         anchor="bottom end"
       >
         <MenuItem>
-          <Link
-            to={`/${id}`}
+          <span
+            onClick={onEdit}
             className="cursor-pointer rounded block px-2 py-1 data-[focus]:bg-blue-100"
           >
             Edit
-          </Link>
+          </span>
         </MenuItem>
         <MenuItem>
-          <span className="cursor-pointer rounded block px-2 py-1 text-red-500 data-[focus]:bg-red-100">
+          <span
+            onClick={onDelete}
+            className="cursor-pointer rounded block px-2 py-1 text-red-500 data-[focus]:bg-red-100"
+          >
             Delete
           </span>
         </MenuItem>
@@ -41,11 +45,33 @@ const ChecklistMenu = ({ id }: { id: number }) => {
 };
 
 export default function ChecklistCard({ checklist }: { checklist: Checklist }) {
+  const { authorization } = useLoaderData<typeof loader>();
+  const { revalidate } = useRevalidator();
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    const res = (await deleteChecklist(
+      checklist.id.toString(),
+      authorization
+    )) as DefaultResponseData<any>;
+
+    if (res.errorMessage) {
+      toast(res.errorMessage, { type: "error" });
+      return;
+    }
+
+    toast(res.message, { type: "success" });
+    revalidate();
+  };
+
   return (
     <div className="bg-stone-300 p-2">
       <div className="flex justify-between items-center">
         <h2 className="font-medium">{checklist.name}</h2>
-        <ChecklistMenu id={checklist.id} />
+        <ChecklistMenu
+          onEdit={() => navigate(`/checklist/${checklist.id}`)}
+          onDelete={handleDelete}
+        />
       </div>
     </div>
   );

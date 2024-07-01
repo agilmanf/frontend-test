@@ -8,5 +8,3 @@ export type Checklist = {
 };
 
 export type GetAllChecklistResponse = DefaultResponseData<Checklist[]>;
-
-export type AddChecklistResponse = DefaultResponseData<any>;
